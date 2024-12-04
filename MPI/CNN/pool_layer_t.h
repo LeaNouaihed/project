@@ -1,5 +1,6 @@
 #pragma once
 #include "layer_t.h"
+#include <mpi.h>
 
 #pragma pack(push, 1)
 struct pool_layer_t
@@ -81,49 +82,49 @@ struct pool_layer_t
 		this->in = in;
 		activate();
 	}
-void activate()
-{
-    int rank, size;
-
-    // Initialize MPI environment
-    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-    MPI_Comm_size(MPI_COMM_WORLD, &size);
-
-    // Divide the workload (output rows) among processes
-    int rows_per_process = out.size.x / size;
-    int start_row = rank * rows_per_process;
-    int end_row = (rank == size - 1) ? out.size.x : start_row + rows_per_process;
-
-    // Allocate memory for the local portion of the output
-    tensor_t<float> local_out(rows_per_process, out.size.y, out.size.z);
-
-    // Perform pooling for the assigned rows
-    for (int x = start_row; x < end_row; x++) {
-        for (int y = 0; y < out.size.y; y++) {
-            for (int z = 0; z < out.size.z; z++) {
-                point_t mapped = map_to_input({(uint16_t)x, (uint16_t)y, 0}, 0);
-                float mval = -FLT_MAX;
-
-                for (int i = 0; i < extend_filter; i++) {
-                    for (int j = 0; j < extend_filter; j++) {
-                        float v = in(mapped.x + i, mapped.y + j, z);
-                        if (v > mval) {
-                            mval = v;
-                        }
-                    }
-                }
-                local_out(x - start_row, y, z) = mval;
-            }
-        }
-    }
-
-    // Gather all local outputs into the root process
-    MPI_Gather(local_out.data, rows_per_process * out.size.y * out.size.z, MPI_FLOAT,
-               out.data, rows_per_process * out.size.y * out.size.z, MPI_FLOAT,
-               0, MPI_COMM_WORLD);
-
-  
-}
+	void activate()
+	{
+	    int rank, size;
+	
+	    // Initialize MPI environment
+	    MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+	    MPI_Comm_size(MPI_COMM_WORLD, &size);
+	
+	    // Divide the workload (output rows) among processes
+	    int rows_per_process = out.size.x / size;
+	    int start_row = rank * rows_per_process;
+	    int end_row = (rank == size - 1) ? out.size.x : start_row + rows_per_process;
+	
+	    // Allocate memory for the local portion of the output
+	    tensor_t<float> local_out(rows_per_process, out.size.y, out.size.z);
+	
+	    // Perform pooling for the assigned rows
+	    for (int x = start_row; x < end_row; x++) {
+	        for (int y = 0; y < out.size.y; y++) {
+	            for (int z = 0; z < out.size.z; z++) {
+	                point_t mapped = map_to_input({(uint16_t)x, (uint16_t)y, 0}, 0);
+	                float mval = -FLT_MAX;
+	
+	                for (int i = 0; i < extend_filter; i++) {
+	                    for (int j = 0; j < extend_filter; j++) {
+	                        float v = in(mapped.x + i, mapped.y + j, z);
+	                        if (v > mval) {
+	                            mval = v;
+	                        }
+	                    }
+	                }
+	                local_out(x - start_row, y, z) = mval;
+	            }
+	        }
+	    }
+	
+	    // Gather all local outputs into the root process
+	    MPI_Gather(local_out.data, rows_per_process * out.size.y * out.size.z, MPI_FLOAT,
+	               out.data, rows_per_process * out.size.y * out.size.z, MPI_FLOAT,
+	               0, MPI_COMM_WORLD);
+	
+	  
+	}
 
 
 	void fix_weights()
