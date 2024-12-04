@@ -105,39 +105,6 @@ struct conv_layer_t
 	}
 	
 	
-/*	void activate()
-{
-    #pragma omp parallel for
-    for (int filter = 0; filter < filters.size(); filter++)
-    {
-        tensor_t<float>& filter_data = filters[filter];
-
-        #pragma omp parallel for collapse(2)
-        for (int x = 0; x < out.size.x; x++)
-        {
-            for (int y = 0; y < out.size.y; y++)
-            {
-                point_t mapped = map_to_input({(uint16_t)x, (uint16_t)y, 0}, 0);
-                float sum = 0;
-
-                #pragma omp parallel for reduction(+:sum)
-                for (int i = 0; i < extend_filter; i++)
-                {
-                    for (int j = 0; j < extend_filter; j++)
-                    {
-                        for (int z = 0; z < in.size.z; z++)
-                        {
-                            float f = filter_data(i, j, z);
-                            float v = in(mapped.x + i, mapped.y + j, z);
-                            sum += f * v;
-                        }
-                    }
-                }
-                out(x, y, filter) = sum;
-            }
-        }
-    }
-}*/
 void activate()
 {
     #pragma omp parallel
